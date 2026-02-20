@@ -61,11 +61,11 @@ func (p *PGraph) Query(dslQuery string) (Result, error) {
 }
 
 func (p *PGraph) Save(w io.Writer) error {
-	return serialization.WriteJSON(p.Graph, w)
+	return serialization.WriteJSON(p.parser.SessionGraph, w)
 }
 
 func (p *PGraph) SaveFile(path string) error {
-	return serialization.SaveJSON(p.Graph, path)
+	return serialization.SaveJSON(p.parser.SessionGraph, path)
 }
 
 type jsonResult struct {
