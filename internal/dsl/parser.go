@@ -26,10 +26,7 @@ func CreateParser(baseGraph graph.ProbabilisticGraphModel) Parser {
 func (p Parser) ParseLine(input string) (result.Result, error) {
 	ast, err := dslParser.ParseString("", input)
 	if err != nil {
-		return nil, SyntaxError{
-			Kind:    "InvalidSyntax",
-			Message: err.Error(),
-		}
+		return nil, enrichSyntaxError(input, err)
 	}
 
 	node, err := convertGrammar(ast, p.SessionGraph)
