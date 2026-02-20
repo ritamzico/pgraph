@@ -184,7 +184,7 @@ func main() {
 
 		default:
 			if active == "" {
-				fmt.Fprintln(os.Stderr, "no active graph — use 'load' or 'use' first")
+				fmt.Fprintln(os.Stderr, "no active graph — use 'load', 'use', or 'new' first")
 				continue
 			}
 			res, err := graphs[active].pg.Query(line)
