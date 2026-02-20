@@ -9,11 +9,17 @@ import (
 	pgraph "github.com/ritamzico/pgraph"
 )
 
+type graphEntry struct {
+	pg         *pgraph.PGraph
+	sourcePath string // empty if created via "new"
+}
+
 const helpText = `pgraph interactive REPL
 
 Commands:
   new <name>           Create a new empty graph
   load <name> <file>   Load a graph from a JSON file
+  save <name> [file]   Save a graph to a JSON file
   unload <name>        Remove a loaded graph
   list                 List all loaded graphs
   use <name>           Set the active graph for queries
@@ -32,7 +38,7 @@ DSL examples:
 `
 
 func main() {
-	graphs := make(map[string]*pgraph.PGraph)
+	graphs := make(map[string]*graphEntry)
 	var active string
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -85,7 +91,7 @@ func main() {
 				continue
 			}
 			name := parts[1]
-			graphs[name] = pgraph.New()
+			graphs[name] = &graphEntry{pg: pgraph.New()}
 			if active == "" {
 				active = name
 			}
@@ -115,11 +121,50 @@ func main() {
 				fmt.Fprintf(os.Stderr, "error loading %q: %v\n", path, err)
 				continue
 			}
-			graphs[name] = pg
+			graphs[name] = &graphEntry{pg: pg, sourcePath: path}
 			if active == "" {
 				active = name
 			}
 			fmt.Printf("loaded %q (%d nodes)\n", name, len(pg.Graph.GetNodes()))
+
+		case "save":
+			if len(parts) < 2 {
+				fmt.Fprintln(os.Stderr, "usage: save <name> [file]")
+				continue
+			}
+			name := parts[1]
+			entry, ok := graphs[name]
+			if !ok {
+				fmt.Fprintf(os.Stderr, "no graph named %q\n", name)
+				continue
+			}
+
+			var savePath string
+			if len(parts) >= 3 {
+				savePath = parts[2]
+			} else if entry.sourcePath != "" {
+				// Loaded from file — confirm overwrite
+				fmt.Printf("graph %q was loaded from %q — overwrite? [y/N] ", name, entry.sourcePath)
+				if !scanner.Scan() {
+					break
+				}
+				answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+				if answer != "y" && answer != "yes" {
+					fmt.Println("save cancelled")
+					continue
+				}
+				savePath = entry.sourcePath
+			} else {
+				fmt.Fprintln(os.Stderr, "graph was created in-memory — specify a file path: save <name> <file>")
+				continue
+			}
+
+			if err := entry.pg.SaveFile(savePath); err != nil {
+				fmt.Fprintf(os.Stderr, "error saving %q: %v\n", savePath, err)
+				continue
+			}
+			entry.sourcePath = savePath
+			fmt.Printf("saved %q to %s\n", name, savePath)
 
 		case "unload":
 			if len(parts) < 2 {
@@ -142,7 +187,7 @@ func main() {
 				fmt.Fprintln(os.Stderr, "no active graph — use 'load' or 'use' first")
 				continue
 			}
-			res, err := graphs[active].Query(line)
+			res, err := graphs[active].pg.Query(line)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "query error: %v\n", err)
 			} else if res != nil {
