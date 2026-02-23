@@ -19,7 +19,7 @@ const helpText = `pgraph interactive REPL
 Commands:
   new <name>           Create a new empty graph
   load <name> <file>   Load a graph from a JSON file
-  save <name> [file]   Save a graph to a JSON file
+  save <name> <file>   Save a graph to a JSON file
   unload <name>        Remove a loaded graph
   list                 List all loaded graphs
   use <name>           Set the active graph for queries
