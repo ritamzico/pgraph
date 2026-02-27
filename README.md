@@ -11,7 +11,7 @@ A probabilistic graph inference engine written in Go. Models directed graphs whe
 - Exact and Monte Carlo reachability analysis
 - Composite queries — AND, OR, conditional, threshold, aggregate
 - Query DSL for graph construction and inference
-- Go library, interactive CLI, and HTTP server interfaces
+- Go library, interactive CLI, and stateless HTTP server interfaces
 
 ## Installation
 
