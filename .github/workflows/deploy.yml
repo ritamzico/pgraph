@@ -38,4 +38,4 @@ jobs:
             --image $IMAGE \
             --region $REGION \
             --platform managed \
-        --allow-unauthenticated
+            --allow-unauthenticated
