@@ -12,7 +12,7 @@ import (
 
 var allowedOrigins = []string{
 	"http://localhost:5173",
-	"https://pgraph.ritamchakraborty.com/",
+	"https://pgraph.ritamchakraborty.com",
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
