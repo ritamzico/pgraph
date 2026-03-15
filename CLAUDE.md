@@ -13,11 +13,8 @@ Module: `github.com/ritamzico/pgraph`
 ## Build & Run Commands
 
 ```bash
-make build          # Builds ./bin/pgraph-cli and ./bin/pgraph-server
-make build-cli      # Builds CLI only
-make build-server   # Builds server only
+make build          # Builds ./bin/pgraph-cli
 make run-cli        # Runs CLI via go run ./cmd/cli/main.go
-make run-server     # Runs server via go run ./cmd/server/main.go
 make clean          # Removes ./bin directory
 go test ./...       # Run all tests
 ```
@@ -39,7 +36,6 @@ The root package exposes the public Go library API:
 ### Package Structure
 
 - **`cmd/cli/`** — Interactive REPL. Manages multiple named graphs (`new`, `load`, `unload`, `use`, `list`). Any unrecognized input is executed as a DSL query against the active graph.
-- **`cmd/server/`** — HTTP server exposing a REST API. Endpoints: `GET /graphs` (list), `POST /graphs/{name}` (load from JSON body), `DELETE /graphs/{name}` (unload), `POST /graphs/{name}/query` (execute DSL). Uses `sync.RWMutex`-protected store for concurrent access.
 - **`internal/graph/`** — Core data structures: `ProbabilisticGraphModel` interface, `ProbabilisticAdjacencyListGraph` implementation (bidirectional adjacency list with `nodeMap`, `edgeMap`, `out`, `in` maps), `Node`, `Edge`, `Path`, `Condition`, `Value`.
 - **`internal/dsl/`** — DSL parser built with `participle/v2`. Defines the grammar AST (`grammar.go`), converts AST to domain objects (`convert.go`), and provides the `Parser` entry point (`parser.go`). Statement types for CREATE/DELETE are in `statement.go`.
 - **`internal/query/`** — Query interface (`Execute(ctx, graph) -> Result`) with simple queries (`MaxProbabilityPathQuery`, `TopKProbabilityPathsQuery`, `ReachabilityProbabilityQuery`) and composite queries (`MultiQuery`, `AndQuery`, `OrQuery`, `ConditionalQuery`, `SequentialQuery`, `ThresholdQuery`, `AggregateQuery`). Reducers (`MeanProbabilityReducer`, `BestPathReducer`) for aggregate queries in `reducer.go`.
@@ -92,4 +88,4 @@ THRESHOLD 0.9 ( REACHABILITY FROM a TO b EXACT )
 ## Dependencies
 
 - `github.com/alecthomas/participle/v2` — Parser generator used for DSL grammar definition.
-- Standard library only otherwise (`context`, `container/heap`, `math/rand/v2`, `sync`, `runtime`, `net/http`, `encoding/json`).
+- Standard library only otherwise (`context`, `container/heap`, `math/rand/v2`, `sync`, `runtime`, `encoding/json`).

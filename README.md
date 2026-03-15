@@ -11,13 +11,12 @@ A probabilistic graph inference engine written in Go. Models directed graphs whe
 - Exact and Monte Carlo reachability analysis
 - Composite queries — AND, OR, conditional, threshold, aggregate
 - Query DSL for graph construction and inference
-- Go library, interactive CLI, and stateless HTTP server interfaces
+- Go library and interactive CLI interfaces
 
 ## Installation
 
 ```bash
 go install github.com/ritamzico/pgraph/cmd/cli@latest        # CLI
-go install github.com/ritamzico/pgraph/cmd/server@latest     # HTTP server
 ```
 
 Or build from source:
@@ -25,7 +24,7 @@ Or build from source:
 ```bash
 git clone https://github.com/ritamzico/pgraph.git
 cd pgraph
-make build        # produces ./bin/pgraph-cli and ./bin/pgraph-server
+make build        # produces ./bin/pgraph-cli
 ```
 
 ## Quick Start
@@ -45,7 +44,6 @@ fmt.Println(result)
 
 - [Go Library API](docs/api.md)
 - [CLI](docs/cli.md)
-- [HTTP Server](docs/server.md)
 - [DSL Reference](docs/dsl.md)
 - [Algorithms](docs/algorithms.md)
 
