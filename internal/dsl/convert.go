@@ -247,7 +247,7 @@ func convertCondition(items []*ConditionItemAST, g graph.ProbabilisticGraphModel
 	return graph.Condition{
 		ForcedActiveEdges:   forcedActiveEdges,
 		ForcedInactiveEdges: forcedInaActiveEdges,
-		ForcedActiveNodes:   forcedInactiveNodes,
+		ForcedActiveNodes:   forcedActiveNodes,
 		ForcedInactiveNodes: forcedInactiveNodes,
 	}, nil
 }
