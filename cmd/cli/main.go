@@ -2,24 +2,18 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
-
-	pgraph "github.com/ritamzico/pgraph"
 )
-
-type graphEntry struct {
-	pg         *pgraph.PGraph
-	sourcePath string // empty if created via "new"
-}
 
 const helpText = `pgraph interactive REPL
 
 Commands:
   new <name>           Create a new empty graph
   load <name> <file>   Load a graph from a JSON file
-  save <name> <file>   Save a graph to a JSON file
+  save <name> [file]   Save a graph to a JSON file
   unload <name>        Remove a loaded graph
   list                 List all loaded graphs
   use <name>           Set the active graph for queries
@@ -35,20 +29,39 @@ DSL examples:
   REACHABILITY FROM nodeA TO nodeB MONTECARLO
   CREATE NODE myNode
   CREATE EDGE e1 FROM nodeA TO nodeB PROB 0.8
+
+Batch mode:
+  pgraph-cli run <script.pgraph> [--json] [--continue]
 `
 
 func main() {
-	graphs := make(map[string]*graphEntry)
-	var active string
+	// Batch mode: pgraph-cli run <file> [--json] [--continue]
+	if len(os.Args) >= 3 && strings.ToLower(os.Args[1]) == "run" {
+		filename := os.Args[2]
+		var opts batchOpts
+		for _, arg := range os.Args[3:] {
+			switch arg {
+			case "--json":
+				opts.jsonOutput = true
+			case "--continue":
+				opts.continueOnError = true
+			}
+		}
+		os.Exit(runBatch(filename, opts, os.Stdout, os.Stderr))
+	}
 
+	// Interactive REPL
+	s := newSession()
 	scanner := bufio.NewScanner(os.Stdin)
+	s.scanner = scanner
+
 	fmt.Println("pgraph — probabilistic graph inference engine")
 	fmt.Println(`Type "help" for available commands.`)
 	fmt.Println()
 
 	for {
-		if active != "" {
-			fmt.Printf("[%s]> ", active)
+		if s.active != "" {
+			fmt.Printf("[%s]> ", s.active)
 		} else {
 			fmt.Print("> ")
 		}
@@ -62,137 +75,19 @@ func main() {
 			continue
 		}
 
-		parts := strings.Fields(line)
-		cmd := strings.ToLower(parts[0])
+		res, msg, err := s.processLine(line)
+		if err != nil {
+			if errors.Is(err, errExit) {
+				return
+			}
+			fmt.Fprintln(os.Stderr, err)
+			continue
+		}
 
-		switch cmd {
-		case "exit", "quit":
-			return
-
-		case "help":
-			fmt.Print(helpText)
-
-		case "list":
-			if len(graphs) == 0 {
-				fmt.Println("(no graphs loaded)")
-			} else {
-				for name := range graphs {
-					marker := " "
-					if name == active {
-						marker = "*"
-					}
-					fmt.Printf("  %s %s\n", marker, name)
-				}
-			}
-
-		case "new":
-			if len(parts) < 2 {
-				fmt.Fprintln(os.Stderr, "usage: new <name>")
-				continue
-			}
-			name := parts[1]
-			graphs[name] = &graphEntry{pg: pgraph.New()}
-			if active == "" {
-				active = name
-			}
-			fmt.Printf("created empty graph %q\n", name)
-
-		case "use":
-			if len(parts) < 2 {
-				fmt.Fprintln(os.Stderr, "usage: use <name>")
-				continue
-			}
-			name := parts[1]
-			if _, ok := graphs[name]; !ok {
-				fmt.Fprintf(os.Stderr, "no graph named %q\n", name)
-				continue
-			}
-			active = name
-			fmt.Printf("active graph set to %q\n", name)
-
-		case "load":
-			if len(parts) < 3 {
-				fmt.Fprintln(os.Stderr, "usage: load <name> <file>")
-				continue
-			}
-			name, path := parts[1], parts[2]
-			pg, err := pgraph.LoadFile(path)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "error loading %q: %v\n", path, err)
-				continue
-			}
-			graphs[name] = &graphEntry{pg: pg, sourcePath: path}
-			if active == "" {
-				active = name
-			}
-			fmt.Printf("loaded %q (%d nodes)\n", name, len(pg.Graph.GetNodes()))
-
-		case "save":
-			if len(parts) < 2 {
-				fmt.Fprintln(os.Stderr, "usage: save <name> [file]")
-				continue
-			}
-			name := parts[1]
-			entry, ok := graphs[name]
-			if !ok {
-				fmt.Fprintf(os.Stderr, "no graph named %q\n", name)
-				continue
-			}
-
-			var savePath string
-			if len(parts) >= 3 {
-				savePath = parts[2]
-			} else if entry.sourcePath != "" {
-				// Loaded from file — confirm overwrite
-				fmt.Printf("graph %q was loaded from %q — overwrite? [y/N] ", name, entry.sourcePath)
-				if !scanner.Scan() {
-					break
-				}
-				answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
-				if answer != "y" && answer != "yes" {
-					fmt.Println("save cancelled")
-					continue
-				}
-				savePath = entry.sourcePath
-			} else {
-				fmt.Fprintln(os.Stderr, "graph was created in-memory — specify a file path: save <name> <file>")
-				continue
-			}
-
-			if err := entry.pg.SaveFile(savePath); err != nil {
-				fmt.Fprintf(os.Stderr, "error saving %q: %v\n", savePath, err)
-				continue
-			}
-			entry.sourcePath = savePath
-			fmt.Printf("saved %q to %s\n", name, savePath)
-
-		case "unload":
-			if len(parts) < 2 {
-				fmt.Fprintln(os.Stderr, "usage: unload <name>")
-				continue
-			}
-			name := parts[1]
-			if _, ok := graphs[name]; !ok {
-				fmt.Fprintf(os.Stderr, "no graph named %q\n", name)
-				continue
-			}
-			delete(graphs, name)
-			if active == name {
-				active = ""
-			}
-			fmt.Printf("unloaded %q\n", name)
-
-		default:
-			if active == "" {
-				fmt.Fprintln(os.Stderr, "no active graph — use 'load', 'use', or 'new' first")
-				continue
-			}
-			res, err := graphs[active].pg.Query(line)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "query error: %v\n", err)
-			} else if res != nil {
-				fmt.Println(res.String())
-			}
+		if res != nil {
+			fmt.Println(res.String())
+		} else if msg != "" {
+			fmt.Println(msg)
 		}
 	}
 }
