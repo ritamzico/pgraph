@@ -12,6 +12,7 @@ A probabilistic graph inference engine written in Go. Models directed graphs whe
 - Composite queries — AND, OR, conditional, threshold, aggregate
 - Query DSL for graph construction and inference
 - Go library and interactive CLI interfaces
+- Batch scripting — run `.pgraph` script files for reproducible analysis
 
 ## Installation
 
@@ -40,10 +41,30 @@ result, _ := pg.Query("REACHABILITY FROM supplier TO retailer EXACT")
 fmt.Println(result)
 ```
 
+## Batch Scripting
+
+Write a `.pgraph` script file and run it for reproducible analysis:
+
+```pgraph
+# analysis.pgraph
+new supply_chain
+CREATE NODE supplier, factory, retailer
+CREATE EDGE e1 FROM supplier TO factory PROB 0.95
+CREATE EDGE e2 FROM factory TO retailer PROB 0.9
+REACHABILITY FROM supplier TO retailer EXACT
+CONDITIONAL GIVEN EDGE e1 INACTIVE ( REACHABILITY FROM supplier TO retailer EXACT )
+```
+
+```bash
+./bin/pgraph-cli run analysis.pgraph           # human-readable output
+./bin/pgraph-cli run analysis.pgraph --json    # newline-delimited JSON
+./bin/pgraph-cli run analysis.pgraph --continue  # don't stop on first error
+```
+
 ## Documentation
 
 - [Go Library API](docs/api.md)
-- [CLI](docs/cli.md)
+- [CLI & Batch Mode](docs/cli.md)
 - [DSL Reference](docs/dsl.md)
 - [Algorithms](docs/algorithms.md)
 
