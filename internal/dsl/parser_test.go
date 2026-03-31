@@ -1054,6 +1054,100 @@ func TestParser_KeywordsCaseInsensitiveInStatements(t *testing.T) {
 	}
 }
 
+// ── Sensitivity query tests ─────────────────────────────────────────────
+
+func TestParser_SensitivityExact(t *testing.T) {
+	baseGraph := buildTestGraph(t)
+	parser := CreateParser(baseGraph)
+
+	res, err := parser.ParseLine("SENSITIVITY FROM A TO D EXACT")
+	if err != nil {
+		t.Fatalf("ParseLine failed: %v", err)
+	}
+
+	sensRes, ok := res.(result.SensitivityResult)
+	if !ok {
+		t.Fatalf("expected SensitivityResult, got %T", res)
+	}
+
+	path1 := 0.9 * 0.7
+	path2 := 0.8 * 0.6
+	wantBaseline := 1.0 - (1.0-path1)*(1.0-path2)
+
+	if math.Abs(sensRes.Baseline-wantBaseline) > 1e-9 {
+		t.Errorf("baseline: want %.10f, got %.10f", wantBaseline, sensRes.Baseline)
+	}
+	if len(sensRes.Impacts) != 4 {
+		t.Errorf("expected 4 impacts, got %d", len(sensRes.Impacts))
+	}
+}
+
+func TestParser_SensitivityDefaultModeIsExact(t *testing.T) {
+	baseGraph := buildTestGraph(t)
+	parser := CreateParser(baseGraph)
+
+	res, err := parser.ParseLine("SENSITIVITY FROM A TO D")
+	if err != nil {
+		t.Fatalf("ParseLine failed: %v", err)
+	}
+	if _, ok := res.(result.SensitivityResult); !ok {
+		t.Fatalf("expected SensitivityResult, got %T", res)
+	}
+}
+
+func TestParser_SensitivityMonteCarlo(t *testing.T) {
+	baseGraph := buildTestGraph(t)
+	parser := CreateParser(baseGraph)
+
+	res, err := parser.ParseLine("SENSITIVITY FROM A TO D MONTECARLO")
+	if err != nil {
+		t.Fatalf("ParseLine failed: %v", err)
+	}
+	sensRes, ok := res.(result.SensitivityResult)
+	if !ok {
+		t.Fatalf("expected SensitivityResult, got %T", res)
+	}
+	if len(sensRes.Impacts) != 4 {
+		t.Errorf("expected 4 impacts, got %d", len(sensRes.Impacts))
+	}
+}
+
+func TestParser_SensitivitySortedDescending(t *testing.T) {
+	baseGraph := buildTestGraph(t)
+	parser := CreateParser(baseGraph)
+
+	res, err := parser.ParseLine("SENSITIVITY FROM A TO D EXACT")
+	if err != nil {
+		t.Fatalf("ParseLine failed: %v", err)
+	}
+	sensRes := res.(result.SensitivityResult)
+
+	for i := 1; i < len(sensRes.Impacts); i++ {
+		if sensRes.Impacts[i].Delta > sensRes.Impacts[i-1].Delta {
+			t.Errorf("impacts not sorted descending at position %d", i)
+		}
+	}
+}
+
+func TestParser_SensitivityCaseInsensitive(t *testing.T) {
+	baseGraph := buildTestGraph(t)
+	for _, input := range []string{
+		"sensitivity from A to D exact",
+		"SENSITIVITY FROM A TO D EXACT",
+		"Sensitivity From A To D Exact",
+	} {
+		parser := CreateParser(baseGraph)
+		res, err := parser.ParseLine(input)
+		if err != nil {
+			t.Errorf("%q: ParseLine failed: %v", input, err)
+			continue
+		}
+		if _, ok := res.(result.SensitivityResult); !ok {
+			t.Errorf("%q: expected SensitivityResult, got %T", input, res)
+		}
+	}
+}
+
 func TestParser_KeywordsCaseInsensitiveInDelete(t *testing.T) {
 	testCases := []string{
 		"delete node A",

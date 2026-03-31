@@ -6,7 +6,7 @@ import (
 )
 
 var dslLexer = lexer.MustSimple([]lexer.SimpleRule{
-	{Name: "Keyword", Pattern: `(?i)\b(CREATE|DELETE|NODE|EDGE|FROM|TO|PROB|MAXPATH|TOPK|REACHABILITY|EXACT|MONTECARLO|MULTI|AND|OR|CONDITIONAL|GIVEN|ACTIVE|INACTIVE|THRESHOLD|AGGREGATE|MEAN|MAX|MIN|BESTPATH|COUNTABOVE|K|TRUE|FALSE)\b`},
+	{Name: "Keyword", Pattern: `(?i)\b(CREATE|DELETE|NODE|EDGE|FROM|TO|PROB|MAXPATH|TOPK|REACHABILITY|SENSITIVITY|EXACT|MONTECARLO|MULTI|AND|OR|CONDITIONAL|GIVEN|ACTIVE|INACTIVE|THRESHOLD|AGGREGATE|MEAN|MAX|MIN|BESTPATH|COUNTABOVE|K|TRUE|FALSE)\b`},
 	{Name: "Float", Pattern: `\d+\.\d+`},
 	{Name: "Int", Pattern: `\d+`},
 	{Name: "String", Pattern: `"([^"\\]|\\.)*"`},
@@ -99,9 +99,17 @@ type QueryAST struct {
 	MaxPath      *MaxPathAST      `parser:"| \"MAXPATH\" @@"`
 	TopK         *TopKAST         `parser:"| \"TOPK\" @@"`
 	Reachability *ReachabilityAST `parser:"| \"REACHABILITY\" @@"`
+	Sensitivity  *SensitivityAST  `parser:"| \"SENSITIVITY\" @@"`
 	Multi        *CompositeAST    `parser:"| \"MULTI\" @@"`
 	And          *CompositeAST    `parser:"| \"AND\" @@"`
 	Or           *CompositeAST    `parser:"| \"OR\" @@"`
+}
+
+// SensitivityAST: FROM <a> TO <b> [EXACT|MONTECARLO]
+type SensitivityAST struct {
+	From string `parser:"\"FROM\" @Ident"`
+	To   string `parser:"\"TO\" @Ident"`
+	Mode string `parser:"@( \"EXACT\" | \"MONTECARLO\" )?"`
 }
 
 // MaxPathAST: FROM <a> TO <b>

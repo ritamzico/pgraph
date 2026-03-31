@@ -99,3 +99,28 @@ func (q ReachabilityProbabilityQuery) Execute(ctx context.Context, g graph.Proba
 		}
 	}
 }
+
+type SensitivityQuery struct {
+	Start, End graph.NodeID
+	Mode       InferenceMode
+}
+
+func (q SensitivityQuery) Execute(ctx context.Context, g graph.ProbabilisticGraphModel) (result.Result, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
+	switch q.Mode {
+	case Exact:
+		return inference.SensitivityAnalysis(g, q.Start, q.End)
+	case MonteCarlo:
+		return inference.SensitivityAnalysisMonteCarlo(g, q.Start, q.End, 0)
+	default:
+		return nil, QueryError{
+			Kind:    "InvalidMode",
+			Message: "inference mode should be query.Exact or query.MonteCarlo",
+		}
+	}
+}

@@ -14,6 +14,7 @@ const (
 	SampleResultKind
 	MultiResultKind
 	BooleanResultKind
+	SensitivityResultKind
 )
 
 type ProbabilisticResult interface {
