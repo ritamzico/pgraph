@@ -153,6 +153,18 @@ func convertQuery(ast *QueryAST, g graph.ProbabilisticGraphModel) (query.Query, 
 			Mode:  mode,
 		}, nil
 
+	case ast.Sensitivity != nil:
+		s := ast.Sensitivity
+		mode := query.Exact
+		if strings.EqualFold(s.Mode, "MONTECARLO") {
+			mode = query.MonteCarlo
+		}
+		return query.SensitivityQuery{
+			Start: graph.NodeID(s.From),
+			End:   graph.NodeID(s.To),
+			Mode:  mode,
+		}, nil
+
 	case ast.Multi != nil:
 		queries, err := convertComposite(ast.Multi, g)
 		if err != nil {

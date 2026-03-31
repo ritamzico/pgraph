@@ -12,13 +12,15 @@ import (
 )
 
 type (
-	Result            = result.Result
-	PathResult        = result.PathResult
-	PathsResult       = result.PathsResult
-	ProbabilityResult = result.ProbabilityResult
-	SampleResult      = result.SampleResult
-	MultiResult       = result.MultiResult
-	BooleanResult     = result.BooleanResult
+	Result              = result.Result
+	PathResult          = result.PathResult
+	PathsResult         = result.PathsResult
+	ProbabilityResult   = result.ProbabilityResult
+	SampleResult        = result.SampleResult
+	MultiResult         = result.MultiResult
+	BooleanResult       = result.BooleanResult
+	SensitivityResult   = result.SensitivityResult
+	EdgeImpact          = result.EdgeImpact
 )
 
 type PGraph struct {
@@ -86,6 +88,8 @@ func MarshalResultJSON(r Result) ([]byte, error) {
 		jr = jsonResult{Kind: "sample", Data: v}
 	case result.BooleanResult:
 		jr = jsonResult{Kind: "boolean", Data: v}
+	case result.SensitivityResult:
+		jr = jsonResult{Kind: "sensitivity", Data: v}
 	case result.MultiResult:
 		items := make([]json.RawMessage, len(v.Results))
 		for i, sub := range v.Results {
