@@ -130,6 +130,53 @@ REACHABILITY FROM <source> TO <target> MONTECARLO
 REACHABILITY FROM supplier TO retailer MONTECARLO
 ```
 
+### SENSITIVITY
+
+Rank every edge in the graph by how much the reachability probability drops if that edge is removed. The baseline reachability is computed once, then each edge is evaluated by forcing it inactive and recomputing. Results are sorted by impact (highest first).
+
+```
+SENSITIVITY FROM <source> TO <target>
+SENSITIVITY FROM <source> TO <target> EXACT
+SENSITIVITY FROM <source> TO <target> MONTECARLO
+```
+
+The mode is optional and defaults to `EXACT`. `MONTECARLO` uses parallel Monte Carlo sampling (10,000 samples per evaluation).
+
+**Returns:** `SensitivityResult` — the baseline reachability and a ranked list of `EdgeImpact` entries, each containing:
+
+| Field | Description |
+|---|---|
+| `EdgeID` | The edge identifier |
+| `From`, `To` | Source and target node of the edge |
+| `Probability` | The edge's own Bernoulli probability |
+| `Without` | Reachability if this edge is forced inactive |
+| `Delta` | `Baseline - Without` — how much reachability drops if this edge fails |
+
+A higher `Delta` means the edge is more critical. A `Delta` near zero means the edge has negligible impact on reachability (e.g. it lies on no path between source and target).
+
+```
+SENSITIVITY FROM supplier TO retailer EXACT
+```
+
+Example output for a two-path supply chain:
+
+```
+Baseline reachability: 0.807600
+Impact if removed (4 edges, ranked by Δ):
+  1. e1                   supplier -> factory     [p=0.950]   without=0.480000   Δ=0.327600
+  2. e3                   factory -> retailer     [p=0.700]   without=0.480000   Δ=0.327600
+  3. e2                   supplier -> warehouse   [p=0.800]   without=0.630000   Δ=0.177600
+  4. e4                   warehouse -> retailer   [p=0.600]   without=0.630000   Δ=0.177600
+```
+
+*"Which single link failure would hurt reachability the most?"*
+
+Use `CONDITIONAL` to model the failure explicitly once you know which edge is most critical:
+
+```
+CONDITIONAL GIVEN EDGE e1 INACTIVE ( REACHABILITY FROM supplier TO retailer EXACT )
+```
+
 ---
 
 ## Composite Queries
@@ -321,10 +368,11 @@ prop       = id ":" value
 value      = string | float | int | "TRUE" | "FALSE"
 
 query      = simple_query | composite_query | conditional | threshold | aggregate
-simple     = maxpath | topk | reachability
+simple     = maxpath | topk | reachability | sensitivity
 maxpath    = "MAXPATH" "FROM" id "TO" id
 topk       = "TOPK" "FROM" id "TO" id "K" int
-reachability = "REACHABILITY" "FROM" id "TO" id ("EXACT" | "MONTECARLO")
+reachability = "REACHABILITY" "FROM" id "TO" id ("EXACT" | "MONTECARLO")?
+sensitivity  = "SENSITIVITY" "FROM" id "TO" id ("EXACT" | "MONTECARLO")?
 
 composite  = ("MULTI" | "AND" | "OR") "(" query_list ")"
 query_list = query ("," query)*
